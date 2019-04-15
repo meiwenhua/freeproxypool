@@ -2,6 +2,7 @@ import asyncio
 import aiohttp
 import random
 import re
+from common import *
 
 IPPortPatternGlobal = re.compile(
     r'(?P<ip>(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?))'  # noqa
@@ -29,25 +30,12 @@ class Fetcher():
         self._headers = {'USER-AGENT':'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36'}
 
     async def fetch(self, queue):
-        '''
-        await asyncio.sleep(5)
-        random_proxy = '{}.{}.{}.{}:{}'.format(
-            random.randint(10,254),
-            random.randint(10,254),
-            random.randint(10,254),
-            random.randint(10,254),
-            random.randint(1,65535)
-        )
-        print(random_proxy)
-        await queue.put(random_proxy)
-        '''
         for url in self.urls:
             async with self._session.request('GET', url, headers=self._headers) as resp:
                 page = await resp.text()
                 proxies = IPPortPatternGlobal.findall(page)
-                print('fetch put queue: {}'.format(proxies))
+                log.debug('fetch put queue: {}'.format(proxies))
                 await queue.put(proxies)
-                print('queue size {}'.format(queue.qsize()))
 
 fetcher1 = Fetcher('data5u.com', ['http://www.data5u.com/free/gngn/index.shtml'])
 fetchers = [fetcher1]

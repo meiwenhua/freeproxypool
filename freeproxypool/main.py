@@ -10,33 +10,19 @@
 from fetcher import fetchers, FetcherSchedule
 from feeder import FeederSchedule
 import asyncio
+from common import *
+import logging
+import sys
 
-'''
 async def main():
-    #loop = asyncio.get_event_loop()
-    #print('loop is running {}'.format(loop.is_running()))
-    #loop.run_forever()
-    #loop.set_debug(True)
-    q_fetch = asyncio.Queue()
-    fetcher_schedule = FetcherSchedule(q_fetch, fetchers)
-    #print(fetchers)
-    #tasks = [loop.create_task(fetcher.fetch(q_fetch)) for fetcher in fetchers]
-    #print(tasks)
-    #loop.run_until_complete(fetcher_schedule.run())
-    await fetcher_schedule.run()
+    if '-v' in sys.argv:
+        set_console_log_level(logging.DEBUG)
 
-if __name__ == '__main__':
-    asyncio.run(main())
-'''
-async def main():
-    #loop = asyncio.get_event_loop()
-    #loop.set_debug(True)
+    log.info('Start')
     q_fetch = asyncio.Queue()
     fetcher_schedule = FetcherSchedule(q_fetch, fetchers)
     feeder_schedule = FeederSchedule(q_fetch)
-    #print(fetchers)
-    #tasks = [loop.create_task(fetcher.fetch(q_fetch)) for fetcher in fetchers]
-    #print(tasks)
+
     task1 = asyncio.create_task(fetcher_schedule.run())
     task2 = asyncio.create_task(feeder_schedule.run())
     await task1

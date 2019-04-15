@@ -1,3 +1,4 @@
+from common import *
 
 class FeederSchedule():
     def __init__(self, f_queue):
@@ -8,7 +9,7 @@ class FeederSchedule():
         while True:
             proxies = await self.f_queue.get()
 
-            print('get some in queue')
+            log.debug('get some in queue')
             for feeder in self.feeders:
                 await feeder.feed(proxies)
 
@@ -18,4 +19,4 @@ class Feeder():
         pass
 
     async def feed(self, proxies):
-        print('feed {}'.format(proxies))
+        log.debug('feed {}'.format(proxies))
