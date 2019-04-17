@@ -10,7 +10,7 @@ IPPortPatternGlobal = re.compile(
     flags=re.DOTALL,
 )
 
-class FetcherSchedule():
+class FetcherManager():
     def __init__(self, queue, fetchers):
         self.fetchers = fetchers
         self.queue = queue

@@ -7,27 +7,24 @@
     Python Version: 3.7
 '''
 
-from fetcher import fetchers, FetcherSchedule
-from feeder import FeederSchedule
+from fetcher import fetchers
+from feeder import feeders
+from factory import Factory
 import asyncio
 from common import *
 import logging
 import sys
 
-async def main():
+def main():
     if '-v' in sys.argv:
         set_console_log_level(logging.DEBUG)
 
     log.info('Start')
-    q_fetch = asyncio.Queue()
-    fetcher_schedule = FetcherSchedule(q_fetch, fetchers)
-    feeder_schedule = FeederSchedule(q_fetch)
-
-    task1 = asyncio.create_task(fetcher_schedule.run())
-    task2 = asyncio.create_task(feeder_schedule.run())
-    await task1
-    await task2
-
-if __name__ == '__main__':
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
+    queue = asyncio.Queue()
+    factory = Factory(loop, queue, fetchers, feeders)
+    factory.run()
+if __name__ == '__main__':
+    #loop = asyncio.get_event_loop()
+    #loop.run_until_complete(main())
+    main()
