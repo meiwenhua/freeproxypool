@@ -11,32 +11,37 @@ IPPortPatternGlobal = re.compile(
 )
 
 class FetcherManager():
-    def __init__(self, queue, fetchers):
-        self.fetchers = fetchers
-        self.queue = queue
+    def __init__(self, hub, fetchers):
+        self._hub = hub
+        self._fetchers = fetchers
 
     async def run(self):
         while True:
-            for fetcher in self.fetchers:
-                await fetcher.fetch(self.queue)
+            for fetcher in self._fetchers:
+                await fetcher.fetch(self._hub)
 
-            await asyncio.sleep(10)
+            await asyncio.sleep(100)
 
 class Fetcher():
     def __init__(self, domain, urls):
-        self.domain = domain
-        self.urls = urls
+        self._domain = domain
+        self._urls = urls
         self._session = aiohttp.ClientSession()
         self._headers = {'USER-AGENT':'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36'}
 
-    async def fetch(self, queue):
-        for url in self.urls:
+    async def fetch(self, hub):
+        for url in self._urls:
             async with self._session.request('GET', url, headers=self._headers) as resp:
                 page = await resp.text()
                 proxies = IPPortPatternGlobal.findall(page)
-                log.debug('fetch put queue: {}'.format(proxies))
-                await queue.put(proxies)
+                new_proxies = []
+                for proxy in proxies:
+                    if not proxy in hub:
+                        async with hub._lock:
+                            hub[proxy] = 'new'
+                        new_proxies.append(proxy)
+                log.info('from {}:get {} proxies, {} new proxies, {} total in hub'.format(self._domain, len(proxies), len(new_proxies), len(hub)))
 
-fetcher1 = Fetcher('data5u.com', ['http://www.data5u.com/free/gngn/index.shtml'])
+fetcher1 = Fetcher('66ip', ['http://www.66ip.cn/mo.php?sxb=&tqsl=30&port=&export=&ktip=&sxa=&submit=%CC%E1++%C8%A1&textarea='])
 fetchers = [fetcher1]
 
