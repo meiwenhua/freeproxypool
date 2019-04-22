@@ -5,8 +5,11 @@ from aiohttp import web
 class Server():
     def __init__(self, hub):
         async def handler(request):
-            log.info('{}'.format(self._hub))
-            return web.Response(text='{}'.format(self._hub))
+            proxies = []
+            for proxy in self._hub:
+                if self._hub[proxy] == 'OK':
+                    proxies.append('{}:{}'.format(proxy[0], proxy[1]))
+            return web.json_response(proxies)
 
         self._hub = hub
         self._server = web.Server(handler)
@@ -14,7 +17,7 @@ class Server():
 
     async def run(self):
         await self._runner.setup()
-        self._site = web.TCPSite(self._runner, 'localhost', 8080)
+        self._site = web.TCPSite(self._runner, '0.0.0.0', 8080)
         await self._site.start()
         await asyncio.sleep(100*3600)
 
