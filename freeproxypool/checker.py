@@ -3,36 +3,43 @@ import copy
 import asyncio
 from functools import partial
 import aiohttp
+import datetime
 
 class CheckerManager():
-    def __init__(self, hub, max_checker):
+    def __init__(self, hub):
         self._hub = hub
-        self._checkers = [Checker(i) for i in range(max_checker)]
+        self._checkers = [Checker(i) for i in range(config.checker_number)]
 
     async def run(self):
         def checker_task_done(checker, proxy, f):
             if f.result():
-                self._hub[proxy] = 'OK'
+                self._hub[proxy].check_record.append(('ok','{0:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())))
+                self._hub[proxy].status = 'ok'
+                self._hub[proxy].continuous_fail_count = 0
+                self._hub[proxy].total_ok_count += 1
             else:
-                self._hub[proxy] = 'FAIL'
+                self._hub[proxy].check_record.append(('fail','{0:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())))
+                self._hub[proxy].status = 'fail'
+                self._hub[proxy].continuous_fail_count += 1
+                self._hub[proxy].total_fail_count += 1
 
         while True:
             async with self._hub._lock:
+                local_hub = self._hub.copy() #TODO: add lock??
                 ok_count = 0
-                for proxy in self._hub:
-                    if self._hub[proxy] == 'OK':
+                for proxy in local_hub:
+                    if local_hub[proxy].status == 'ok':
                         ok_count += 1
-                log.info('total {} proxies in hub, {} OK'.format(len(self._hub), ok_count))
-                local_hub = self._hub.copy() #TODO: add lock
+                log.info('total {} proxies in hub, {} OK'.format(len(local_hub), ok_count))
 
             await asyncio.sleep(3)
-            for proxy in local_hub:
+            for proxy in [ x for x in local_hub if local_hub[x].continuous_fail_count < config.checker_max_continuous_fail_count ]:
                 checker = await self.idle_checker()
                 checker._status = 'working'
                 task = asyncio.ensure_future(checker.check(proxy))
                 task.add_done_callback(partial(checker_task_done, checker, proxy))
 
-            await asyncio.sleep(30)
+            await asyncio.sleep(config.checker_period)
 
     async def idle_checker(self):
         while True:
@@ -53,10 +60,8 @@ class Checker():
         ret = False
         log.debug('checker {} working for {}'.format(self._index, proxy))
         proxy_str = '{}:{}'.format(proxy[0], proxy[1])
-        #proxy = '39.137.77.66:8080'
         log.debug('use proxy {}'.format(proxy_str))
-        #await asyncio.sleep(1)
-        timeout = aiohttp.ClientTimeout(total=6)
+        timeout = aiohttp.ClientTimeout(total=config.checker_judge_timeout)
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(url=self._url, timeout=timeout, proxy="http://{}".format(proxy_str)) as resp:

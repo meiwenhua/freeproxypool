@@ -2,6 +2,7 @@ import asyncio
 import aiohttp
 import random
 import re
+from proxy import Proxy
 from common import *
 
 IPPortPatternGlobal = re.compile(
@@ -20,7 +21,7 @@ class FetcherManager():
             for fetcher in self._fetchers:
                 await fetcher.fetch(self._hub)
 
-            await asyncio.sleep(100)
+            await asyncio.sleep(config.fetcher_period)
 
 class Fetcher():
     def __init__(self, domain, urls):
@@ -38,7 +39,7 @@ class Fetcher():
                 for proxy in proxies:
                     if not proxy in hub:
                         async with hub._lock:
-                            hub[proxy] = 'new'
+                            hub[proxy] = Proxy()
                         new_proxies.append(proxy)
                 log.info('from {}:get {} proxies, {} new proxies, {} total in hub'.format(self._domain, len(proxies), len(new_proxies), len(hub)))
 
